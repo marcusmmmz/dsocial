@@ -21,8 +21,6 @@
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-svelte3": "^4.0.0",
-		"gun": "^0.2020.1239",
-		"peerjs": "^1.4.7",
 		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.8.1",
 		"simple-peer": "^9.11.1",

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { IMessage } from "./new/interfaces";
-	import { usernameStore } from "./new/stores";
+	import type { IMessage } from "./interfaces";
+	import { usernameStore } from "./stores";
 
 	export let message: IMessage;
 

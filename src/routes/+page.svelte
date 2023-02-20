@@ -1,111 +1,138 @@
 <script lang="ts">
-	import type { DataConnection } from "peerjs";
+	import { onMount, tick } from "svelte";
 	import Message from "./Message.svelte";
-	import { Peer } from "peerjs";
-	import { browser } from "$app/environment";
-	import { useLocalStorage } from "./utils";
+	import { connections, myId, onPeerConnect, publishYourself, searchPublishers } from "./webrtc";
+	import { connectedCountStore, myUsername, usernameStore } from "./stores";
+	import type { PeerId } from "./interfaces";
 
-	let myPeer: Peer;
-
-	let lastConnectedPeers = useLocalStorage<string[]>("lastConnectedPeers", []);
-
-	let myPeerId = useLocalStorage<string>(
-		"peerId",
-		undefined as any,
-		(t) => t,
-		(t) => t
-	);
-
-	if (browser)
-		myPeer = new Peer($myPeerId)
-			.on("open", (id) => {
-				$myPeerId = id;
-
-				setTimeout(() => {
-					$lastConnectedPeers.forEach((peer) => {
-						if (Object.values(conns).find((conn) => conn.peer == peer)) return;
-
-						connect(peer);
-					});
-				}, 2000);
-			})
-			.on("connection", (conn) => {
-				conns[conn.connectionId] = conn;
-
-				conn.on("data", onData);
-
-				conn.on("close", () => {
-					alert("banana");
-				});
-
-				appendMessage(`${conn.peer} entrou no chat`);
-			})
-			.on("disconnected", (id) => {
-				delete conns[id];
-				appendMessage(`${id} saiu do chat`);
-			});
-
-	let conns: Record<string, DataConnection> = {};
-
-	let messages: string[] = [];
-
-	let peerInputValue = "";
-	let messageInputValue = "vai se fuder mlk chato da porra é sério pqp";
-
-	function onData(data: unknown) {
-		appendMessage(data as string);
+	interface IMessage {
+		author: string;
+		content: string;
 	}
 
-	function broadcast(data: any) {
-		Object.values(conns).forEach((peer) => peer.send(data));
-	}
+	let inputValue = "";
 
-	function connect(peerId: string) {
-		let conn = myPeer.connect(peerId);
+	let messages: IMessage[] = [];
+
+	let messagesDiv: HTMLDivElement;
+
+	$usernameStore[myId] = $myUsername;
+
+	onMount(() => {
+		searchPublishers();
+		Notification.requestPermission();
+	});
+
+	onPeerConnect((id) => {
+		const conn = connections[id];
+
+		appendMessage({
+			author: "",
+			content: `${id} entrou no chat`
+		});
+
+		if ($myUsername.trim() != "") unicast(id, "username", $myUsername);
 
 		conn
-			.on("open", () => {
-				appendMessage(`${conn.peer} entrou no chat`);
+			.on("data", (rawData) => {
+				const { type, data } = JSON.parse(rawData);
 
-				if (!$lastConnectedPeers.includes(conn.peer))
-					$lastConnectedPeers = [...$lastConnectedPeers, conn.peer];
+				if (type == "message") {
+					let content: string = data;
+					appendMessage({
+						author: id,
+						content
+					});
 
-				conns[conn.connectionId] = conn;
+					if (document.visibilityState == "hidden")
+						new Notification($usernameStore[id] ?? id, {
+							body: content
+						});
+				} else if (type == "username") {
+					let username: string = data;
+
+					onUsernameChanged(id, username);
+				}
 			})
 			.on("close", () => {
-				delete conns[conn.peer];
-				appendMessage(`${conn.peer} saiu do chat`);
-			})
-			.on("data", onData);
+				appendMessage({
+					author: "",
+					content: `${$usernameStore[id] ?? id} saiu do chat`
+				});
+			});
+	});
 
-		peerInputValue = "";
+	function broadcast(type: string, data: any) {
+		Object.values(connections).forEach((peer) => {
+			peer.send(
+				JSON.stringify({
+					type,
+					data
+				})
+			);
+		});
 	}
 
-	function appendMessage(msg: string) {
+	function unicast(peerId: string, type: string, data: any) {
+		const peer = connections[peerId];
+
+		peer.send(
+			JSON.stringify({
+				type,
+				data
+			})
+		);
+	}
+
+	async function appendMessage(msg: IMessage) {
 		messages = [...messages, msg];
+
+		await tick();
+
+		if (messagesDiv.lastElementChild)
+			messagesDiv.lastElementChild.scrollIntoView({
+				behavior: "smooth"
+			});
 	}
 
 	function sendMessage() {
-		broadcast(messageInputValue);
-		appendMessage(messageInputValue);
-		messageInputValue = "";
+		broadcast("message", inputValue);
+		appendMessage({
+			author: myId,
+			content: inputValue
+		});
+		inputValue = "";
+	}
+
+	function onMyUsernameChanged() {
+		broadcast("username", $myUsername);
+		onUsernameChanged(myId, $myUsername);
+	}
+
+	function onUsernameChanged(id: PeerId, username: string) {
+		$usernameStore[id] = username;
 	}
 </script>
 
 <div class="main">
 	<div class="top-bar">
 		<div class="status-bar">
-			<p>{$myPeerId}</p>
-			<p>{Object.values(conns).length} conectados</p>
+			<input
+				placeholder="username"
+				on:change={onMyUsernameChanged}
+				bind:value={$myUsername}
+				type="text"
+			/>
+			<p>{myId}</p>
+			<p>{$connectedCountStore} conectados</p>
 		</div>
 
 		<div class="connect-bar">
-			<input type="text" bind:value={peerInputValue} />
-			<button on:click={() => connect(peerInputValue)}> connect </button>
+			<button on:click={publishYourself}>auto-connect</button>
 		</div>
 	</div>
 
-	<div class="message-list">
+	<div bind:this={messagesDiv} class="message-list">
 		{#each messages as message}
 			<Message {message} />
 		{/each}
@@ -114,7 +141,7 @@
 	<div class="input-bar">
 		<input
 			type="text"
-			bind:value={messageInputValue}
+			bind:value={inputValue}
 			on:keydown={(e) => {
 				if (e.key == "Enter") sendMessage();
 			}}
@@ -125,6 +152,11 @@
 </div>
 
 <style>
+	.main {
+		background-color: #38343c;
+		color: white;
+	}
+
 	.top-bar {
 		background-color: gray;
 	}
@@ -136,16 +168,18 @@
 
 	.connect-bar {
 		display: grid;
-		grid-template-columns: auto 20%;
+		gap: 16px;
+		grid-template-columns: 1fr;
 	}
 	input {
 		width: 100%;
 	}
 	.status-bar {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-around;
+		text-align: center;
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
 		background-color: darkgrey;
+		color: black;
 	}
 
 	:global(body, html) {
