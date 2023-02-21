@@ -38,17 +38,16 @@
 
 		return newList;
 	}
+
+	$: parsed = parseEmojis(message.content);
+	$: bigEmoji = parsed.every((piece) => emojis[piece] != undefined);
 </script>
 
 <div><strong>{author}</strong></div>
 <div>
-	{#each parseEmojis(message.content) as piece}
+	{#each parsed as piece}
 		{#if emojis[piece]}
-			<img
-				class={message.content == `${piece}` ? "big emoji" : "emoji"}
-				src={emojis[piece]}
-				alt={piece}
-			/>
+			<img class="emoji" class:big={bigEmoji} src={emojis[piece]} alt={piece} />
 		{:else}
 			{piece}
 		{/if}
@@ -59,10 +58,12 @@
 	.emoji {
 		vertical-align: top;
 		width: 22px;
-		height: auto;
+		height: 22px;
 	}
 
 	.big.emoji {
-		width: 4em;
+		width: 48px;
+		height: 48px;
+		object-fit: contain;
 	}
 </style>
