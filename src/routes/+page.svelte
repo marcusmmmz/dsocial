@@ -14,7 +14,7 @@
 
 	let messages: IMessage[] = [];
 
-	let messagesDiv: HTMLDivElement;
+	let scrollEl: HTMLDivElement;
 
 	$usernameStore[myId] = $myUsername;
 
@@ -89,10 +89,9 @@
 
 		await tick();
 
-		if (messagesDiv.lastElementChild)
-			messagesDiv.lastElementChild.scrollIntoView({
-				behavior: "smooth"
-			});
+		scrollEl.scrollIntoView({
+			behavior: "smooth"
+		});
 	}
 
 	function sendMessage() {
@@ -132,10 +131,12 @@
 		</div>
 	</div>
 
-	<div bind:this={messagesDiv} class="message-list">
+	<div class="message-list">
 		{#each messages as message}
 			<Message {message} />
 		{/each}
+
+		<div bind:this={scrollEl} />
 	</div>
 
 	<div class="input-bar">
@@ -152,11 +153,19 @@
 </div>
 
 <style>
-	.main {
-		background-color: #38343c;
-		color: white;
+	:global(body, html) {
+		height: 100%;
+		margin: 0;
 	}
-
+	.main {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		height: 100%;
+		background-color: #303339;
+		color: white;
+		font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	}
 	.top-bar {
 		background-color: gray;
 	}
@@ -165,7 +174,9 @@
 		grid-template-columns: auto 20%;
 		background-color: darkcyan;
 	}
-
+	.input-bar input {
+		height: 5vh;
+	}
 	.connect-bar {
 		display: grid;
 		gap: 16px;
@@ -181,23 +192,12 @@
 		background-color: darkgrey;
 		color: black;
 	}
-
-	:global(body, html) {
-		height: 100%;
-		margin: 0;
-	}
-
-	.main {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		height: 100%;
-	}
 	.message-list {
 		height: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: start;
 		overflow-y: scroll;
+		padding-bottom: 16px;
 	}
 </style>

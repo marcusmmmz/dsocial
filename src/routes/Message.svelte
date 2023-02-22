@@ -43,24 +43,39 @@
 	$: bigEmoji = parsed.every((piece) => emojis[piece] != undefined);
 </script>
 
-<div><strong>{author}</strong></div>
-<div>
-	{#each parsed as piece}
-		{#if emojis[piece]}
-			<img class="emoji" class:big={bigEmoji} src={emojis[piece]} alt={piece} />
-		{:else}
-			{piece}
-		{/if}
-	{/each}
+<div class="message">
+	<div class="author">{author}</div>
+	<div class="content">
+		{#each parsed as piece}
+			{#if emojis[piece]}
+				<img class="emoji" class:big={bigEmoji} src={emojis[piece]} alt={piece} />
+			{:else}
+				{piece}
+			{/if}
+		{/each}
+	</div>
 </div>
 
 <style>
+	.message {
+		margin-top: 9px;
+		padding: 8px 16px;
+	}
+	.message:hover {
+		background-color: #2f3135;
+	}
+	.author {
+		font-weight: 500;
+	}
+	.content {
+		font-weight: 400;
+	}
 	.emoji {
 		vertical-align: top;
 		width: 22px;
 		height: 22px;
+		object-fit: contain;
 	}
-
 	.big.emoji {
 		width: 48px;
 		height: 48px;
