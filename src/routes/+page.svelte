@@ -4,19 +4,21 @@
 	import { connections, myId, onPeerConnect, publishYourself, searchPublishers } from "./webrtc";
 	import { connectedCountStore, myUsername, usernameStore } from "./stores";
 	import type { PeerId } from "./interfaces";
+	import { useThrottle } from "./utils";
 
 	interface IMessage {
 		author: string;
 		content: string;
 	}
 
-	let inputValue = "";
-
+	let typingTimeouts: Record<PeerId, NodeJS.Timeout> = {};
 	let messages: IMessage[] = [];
-
+	let inputValue = "";
 	let scrollEl: HTMLDivElement;
 
 	$usernameStore[myId] = $myUsername;
+
+	$: typingList = Object.keys(typingTimeouts);
 
 	onMount(() => {
 		searchPublishers();
@@ -39,6 +41,7 @@
 
 				if (type == "message") {
 					let content: string = data;
+
 					appendMessage({
 						author: id,
 						content
@@ -48,10 +51,25 @@
 						new Notification($usernameStore[id] ?? id, {
 							body: content
 						});
+
+					if (typingTimeouts[id]) {
+						clearTimeout(typingTimeouts[id]);
+						delete typingTimeouts[id];
+						//force update
+						typingTimeouts = typingTimeouts;
+					}
 				} else if (type == "username") {
 					let username: string = data;
 
 					onUsernameChanged(id, username);
+				} else if (type == "typing") {
+					if (typingTimeouts[id]) clearTimeout(typingTimeouts[id]);
+
+					typingTimeouts[id] = setTimeout(() => {
+						delete typingTimeouts[id];
+						//force update
+						typingTimeouts = typingTimeouts;
+					}, 3000);
 				}
 			})
 			.on("close", () => {
@@ -61,6 +79,11 @@
 				});
 			});
 	});
+
+	const { call: startTyping, reset: resetTyping } = useThrottle(
+		() => broadcast("typing", true),
+		1000
+	);
 
 	function broadcast(type: string, data: any) {
 		Object.values(connections).forEach((peer) => {
@@ -95,6 +118,7 @@
 	}
 
 	function sendMessage() {
+		resetTyping();
 		broadcast("message", inputValue);
 		appendMessage({
 			author: myId,
@@ -138,7 +162,11 @@
 
 		<div bind:this={scrollEl} />
 	</div>
-
+	{#if typingList.length > 0}
+		<div>
+			typing: {typingList.map((id) => $usernameStore[id] ?? id).join(", ")}
+		</div>
+	{/if}
 	<div class="input-bar">
 		<input
 			type="text"
@@ -146,6 +174,7 @@
 			on:keydown={(e) => {
 				if (e.key == "Enter") sendMessage();
 			}}
+			on:input={startTyping}
 		/>
 
 		<button on:click={sendMessage}> send</button>
