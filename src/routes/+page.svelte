@@ -137,6 +137,14 @@
 	}
 </script>
 
+<svelte:window
+	on:unload={() => {
+		for (const conn of Object.values(connections)) {
+			conn.destroy();
+		}
+	}}
+/>
+
 <div class="main">
 	<div class="top-bar">
 		<div class="status-bar">

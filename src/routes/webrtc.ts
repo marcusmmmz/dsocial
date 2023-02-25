@@ -124,8 +124,9 @@ function createPeer(peerId: string, initiator: boolean) {
 		})
 		.on("error", (err) => {
 			if (err.message.includes("User-Initiated Abort")) return;
+			if (err.message.includes("Connection failed")) return;
 
-			alert(err.cause + " " + err.name + "" + err.message);
+			console.log(err);
 		});
 
 	return peer;
