@@ -6,6 +6,8 @@
 
 	$: author = $usernameStore[message.author] ?? message.author;
 
+	export let short = false;
+
 	const emojis: Record<string, string> = {
 		":pexe:": "https://cdn.discordapp.com/emojis/1048253883039875122.png",
 		":anjo:": "https://cdn.discordapp.com/emojis/1037427525690871899.png"
@@ -43,8 +45,10 @@
 	$: bigEmoji = parsed.every((piece) => emojis[piece] != undefined);
 </script>
 
-<div class="message">
-	<div class="author">{author}</div>
+<div class="message" class:short>
+	{#if !short}
+		<div class="author">{author}</div>
+	{/if}
 	<div class="content">
 		{#each parsed as piece}
 			{#if emojis[piece]}
@@ -58,8 +62,11 @@
 
 <style>
 	.message {
-		margin-top: 9px;
-		padding: 8px 16px;
+		padding: 16px;
+		padding-bottom: 0;
+	}
+	.message.short {
+		padding: 0 16px;
 	}
 	.message:hover {
 		background-color: #2f3135;

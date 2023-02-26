@@ -164,8 +164,8 @@
 	</div>
 
 	<div class="message-list">
-		{#each messages as message}
-			<Message {message} />
+		{#each messages as message, i}
+			<Message {message} short={messages[i - 1]?.author == message.author} />
 		{/each}
 
 		<div bind:this={scrollEl} />
