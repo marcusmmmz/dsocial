@@ -3,12 +3,10 @@ import { browser } from "$app/environment";
 import type { PeerId } from "./interfaces";
 
 export let myUsername = useLocalStorage("username", "");
-
 export let usernameStore = writable<Record<PeerId, string>>({});
+export let connectedCountStore = useCount();
 
-export let connectedCountStore = createCount();
-
-function createCount() {
+function useCount() {
 	const { subscribe, update } = writable(0);
 
 	return {

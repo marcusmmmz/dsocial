@@ -27,9 +27,9 @@ const iceServers = [
 // as of now an attacker could stop people from connecting
 export let myId = Math.random().toString(); //crypto.randomUUID();
 
-const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
+export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
 
-const signalingChannel = ably.channels.get("auto-connect");
+let signalingChannel = ably.channels.get("auto-connect");
 
 const myChannel = ably.channels.get(myId);
 
@@ -134,4 +134,30 @@ function createPeer(peerId: string, initiator: boolean) {
 
 export function onPeerConnect(callback: (peerId: string) => any) {
 	peerConnectSubscribers.push(callback);
+}
+
+export function broadcast(type: string, data: any) {
+	Object.values(connections).forEach((peer) => {
+		peer.send(
+			JSON.stringify({
+				type,
+				data
+			})
+		);
+	});
+}
+
+export function unicast(peerId: string, type: string, data: any) {
+	const peer = connections[peerId];
+
+	peer.send(
+		JSON.stringify({
+			type,
+			data
+		})
+	);
+}
+
+export function setSignalingChannel(name: string) {
+	signalingChannel = ably.channels.get(name);
 }

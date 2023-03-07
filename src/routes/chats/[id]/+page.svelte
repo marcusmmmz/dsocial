@@ -1,21 +1,34 @@
 <script lang="ts">
+	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
+	import {
+		broadcast,
+		connections,
+		myId,
+		onPeerConnect,
+		publishYourself,
+		searchPublishers,
+		setSignalingChannel,
+		unicast
+	} from "$lib/webrtc";
+	import { connectedCountStore, myUsername, usernameStore } from "$lib/stores";
+	import type { PeerId } from "$lib/interfaces";
+	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
-	import { connections, myId, onPeerConnect, publishYourself, searchPublishers } from "./webrtc";
-	import { connectedCountStore, myUsername, usernameStore } from "./stores";
-	import type { PeerId } from "./interfaces";
-	import { useThrottle } from "./utils";
 
 	interface IMessage {
 		author: string;
 		content: string;
 	}
 
+	export let data: PageData;
+
 	let typingTimeouts: Record<PeerId, NodeJS.Timeout> = {};
 	let messages: IMessage[] = [];
 	let inputValue = "";
 	let scrollEl: HTMLDivElement;
 
+	setSignalingChannel(`chat-${data.chatId}`);
 	$usernameStore[myId] = $myUsername;
 
 	$: typingList = Object.keys(typingTimeouts);
@@ -85,28 +98,6 @@
 		1000
 	);
 
-	function broadcast(type: string, data: any) {
-		Object.values(connections).forEach((peer) => {
-			peer.send(
-				JSON.stringify({
-					type,
-					data
-				})
-			);
-		});
-	}
-
-	function unicast(peerId: string, type: string, data: any) {
-		const peer = connections[peerId];
-
-		peer.send(
-			JSON.stringify({
-				type,
-				data
-			})
-		);
-	}
-
 	async function appendMessage(msg: IMessage) {
 		messages = [...messages, msg];
 
@@ -159,6 +150,14 @@
 		</div>
 
 		<div class="connect-bar">
+			<input
+				value={data.chatId}
+				on:change={(e) => {
+					// navigate and reload page
+					window.location.href = `/chats/${e.currentTarget.value}`;
+				}}
+				type="text"
+			/>
 			<button on:click={publishYourself}>auto-connect</button>
 		</div>
 	</div>
@@ -216,11 +215,10 @@
 	}
 	.connect-bar {
 		display: grid;
-		gap: 16px;
-		grid-template-columns: 1fr;
+		grid-template-columns: auto 20%;
 	}
-	input {
-		width: 100%;
+	.connect-bar input {
+		height: 5vh;
 	}
 	.status-bar {
 		text-align: center;
