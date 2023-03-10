@@ -1,20 +1,12 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
-	import {
-		broadcast,
-		connections,
-		myId,
-		onPeerConnect,
-		publishYourself,
-		searchPublishers,
-		setSignalingChannel,
-		unicast
-	} from "$lib/webrtc";
+	import { broadcast, connections, myId, onPeerConnect, unicast } from "$lib/webrtc";
 	import { connectedCountStore, myUsername, usernameStore } from "$lib/stores";
 	import type { PeerId } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
+	import { publishYourself, searchPublishers, setSignalingChannel } from "$lib/signaling";
 
 	interface IMessage {
 		author: string;
