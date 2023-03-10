@@ -1,5 +1,5 @@
 import Ably from "ably";
-import { connections, createPeer, myId } from "./webrtc";
+import { attemptingConnections, connections, createPeer, myId } from "./webrtc";
 
 export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
 
@@ -18,7 +18,7 @@ export function publishYourself() {
 
 		let otherPeerId: string = msg.data.id;
 
-		if (getConns().find((id) => id == otherPeerId)) return;
+		if (getConnsAndConnAttempts().find((id) => id == otherPeerId)) return;
 
 		let peer = createPeer(otherPeerId, false);
 
@@ -43,7 +43,7 @@ export function searchPublishers() {
 
 		if (otherPeerId == myId) return;
 
-		if (getConns().find((id) => id == otherPeerId)) return;
+		if (getConnsAndConnAttempts().find((id) => id == otherPeerId)) return;
 
 		const peerChannel = ably.channels.get(msg.data);
 
@@ -73,6 +73,9 @@ export function setSignalingChannel(name: string) {
 	signalingChannel = ably.channels.get(name);
 }
 
-function getConns() {
-	return Object.keys(connections);
+function getConnsAndConnAttempts() {
+	return Object.keys({
+		...connections,
+		...attemptingConnections
+	});
 }

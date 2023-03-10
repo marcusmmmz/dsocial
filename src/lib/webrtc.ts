@@ -31,6 +31,8 @@ export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W3
 
 const peerConnectSubscribers: ((peerId: string) => any)[] = [];
 
+export let attemptingConnections: Record<string, SimplePeer.Instance> = {};
+
 export let connections: Record<string, SimplePeer.Instance> = {};
 
 export function createPeer(peerId: string, initiator: boolean) {
@@ -42,9 +44,12 @@ export function createPeer(peerId: string, initiator: boolean) {
 		}
 	});
 
+	attemptingConnections[peerId] = peer;
+
 	peer
 		.on("connect", () => {
 			console.log("connected", peerId);
+			delete attemptingConnections[peerId];
 			connections[peerId] = peer;
 			connectedCountStore.increment();
 			peerConnectSubscribers.forEach((fn) => fn(peerId));
