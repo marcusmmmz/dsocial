@@ -1,5 +1,6 @@
 import Ably from "ably";
 import SimplePeer from "simple-peer";
+import type { PeerId } from "./interfaces";
 import { connectedCountStore } from "./stores";
 
 const iceServers = [
@@ -23,19 +24,15 @@ const iceServers = [
 	}
 ];
 
-// change this to assymetric keys when security is needed
-// as of now an attacker could stop people from connecting
-export let myId = Math.random().toString(); //crypto.randomUUID();
-
 export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
 
-const peerConnectSubscribers: ((peerId: string) => any)[] = [];
+const peerConnectSubscribers: ((peerId: PeerId) => any)[] = [];
 
-export let attemptingConnections: Record<string, SimplePeer.Instance> = {};
+export let attemptingConnections = new Map<PeerId, SimplePeer.Instance>();
 
-export let connections: Record<string, SimplePeer.Instance> = {};
+export let connections = new Map<PeerId, SimplePeer.Instance>();
 
-export function createPeer(peerId: string, initiator: boolean) {
+export function createPeer(peerId: PeerId, initiator: boolean) {
 	let peer = new SimplePeer({
 		initiator,
 		trickle: false,
@@ -44,19 +41,19 @@ export function createPeer(peerId: string, initiator: boolean) {
 		}
 	});
 
-	attemptingConnections[peerId] = peer;
+	attemptingConnections.set(peerId, peer);
 
 	peer
 		.on("connect", () => {
 			console.log("connected", peerId);
-			delete attemptingConnections[peerId];
-			connections[peerId] = peer;
+			attemptingConnections.delete(peerId);
+			connections.set(peerId, peer);
 			connectedCountStore.increment();
 			peerConnectSubscribers.forEach((fn) => fn(peerId));
 		})
 		.on("close", () => {
 			console.log("disconnected: ", peerId);
-			delete connections[peerId];
+			connections.delete(peerId);
 			connectedCountStore.decrement();
 		})
 		.on("data", (data) => {
@@ -72,25 +69,25 @@ export function createPeer(peerId: string, initiator: boolean) {
 	return peer;
 }
 
-export function onPeerConnect(callback: (peerId: string) => any) {
+export function onPeerConnect(callback: (peerId: PeerId) => any) {
 	peerConnectSubscribers.push(callback);
 }
 
 export function broadcast(type: string, data: any) {
-	Object.values(connections).forEach((peer) => {
-		peer.send(
+	for (const [_, conn] of connections) {
+		conn.send(
 			JSON.stringify({
 				type,
 				data
 			})
 		);
-	});
+	}
 }
 
-export function unicast(peerId: string, type: string, data: any) {
-	const peer = connections[peerId];
+export function unicast(peerId: PeerId, type: string, data: any) {
+	const peer = connections.get(peerId);
 
-	peer.send(
+	peer?.send(
 		JSON.stringify({
 			type,
 			data

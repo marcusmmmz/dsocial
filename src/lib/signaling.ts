@@ -1,24 +1,28 @@
 import Ably from "ably";
-import { attemptingConnections, connections, createPeer, myId } from "./webrtc";
+import { myPubKey } from "./crypto";
+import type { PeerId } from "./interfaces";
+import { attemptingConnections, connections, createPeer } from "./webrtc";
 
 export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
 
 let signalingChannel = ably.channels.get("auto-connect");
 
-const myChannel = ably.channels.get(myId);
+const myChannel = ably.channels.get(myPubKey);
 
+// as of now an attacker could impersonate someone else
+// TODO: use signatures to solve that
 export function publishYourself() {
 	// 1
-	signalingChannel.publish("online", myId);
+	signalingChannel.publish("online", myPubKey);
 
 	myChannel.unsubscribe();
 
 	myChannel.subscribe("offer", (msg) => {
 		// 2
 
-		let otherPeerId: string = msg.data.id;
+		let otherPeerId: PeerId = msg.data.id;
 
-		if (getConnsAndConnAttempts().find((id) => id == otherPeerId)) return;
+		if (attemptingConnections.get(otherPeerId) || connections.get(otherPeerId)) return;
 
 		let peer = createPeer(otherPeerId, false);
 
@@ -29,7 +33,7 @@ export function publishYourself() {
 
 			// 3
 			otherPeerChannel.publish("answer", {
-				id: myId,
+				id: myPubKey,
 				answer: data
 			});
 		});
@@ -39,11 +43,11 @@ export function publishYourself() {
 export function searchPublishers() {
 	signalingChannel.subscribe("online", (msg) => {
 		// 1
-		const otherPeerId: string = msg.data;
+		const otherPeerId: PeerId = msg.data;
 
-		if (otherPeerId == myId) return;
+		if (otherPeerId == myPubKey) return;
 
-		if (getConnsAndConnAttempts().find((id) => id == otherPeerId)) return;
+		if (attemptingConnections.get(otherPeerId) || connections.get(otherPeerId)) return;
 
 		const peerChannel = ably.channels.get(msg.data);
 
@@ -52,7 +56,7 @@ export function searchPublishers() {
 		peer.on("signal", (data) => {
 			// 2
 			peerChannel.publish("offer", {
-				id: myId,
+				id: myPubKey,
 				offer: data
 			});
 
@@ -71,11 +75,4 @@ export function setSignalingChannel(name: string) {
 
 	signalingChannel.unsubscribe();
 	signalingChannel = ably.channels.get(name);
-}
-
-function getConnsAndConnAttempts() {
-	return Object.keys({
-		...connections,
-		...attemptingConnections
-	});
 }

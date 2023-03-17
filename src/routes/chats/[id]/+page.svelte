@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
-	import { broadcast, connections, myId, onPeerConnect, unicast } from "$lib/webrtc";
+	import { broadcast, connections, onPeerConnect, unicast } from "$lib/webrtc";
 	import { connectedCountStore, myUsername, usernameStore } from "$lib/stores";
 	import type { PeerId } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
 	import { publishYourself, searchPublishers, setSignalingChannel } from "$lib/signaling";
+	import { myPubKey } from "$lib/crypto";
+	import { nip19 } from "nostr-tools";
 
 	interface IMessage {
 		author: string;
@@ -21,7 +23,7 @@
 	let scrollEl: HTMLDivElement;
 
 	setSignalingChannel(`chat-${data.chatId}`);
-	$usernameStore[myId] = $myUsername;
+	$usernameStore[myPubKey] = $myUsername;
 
 	$: typingList = Object.keys(typingTimeouts);
 
@@ -31,7 +33,7 @@
 	});
 
 	onPeerConnect((id) => {
-		const conn = connections[id];
+		const conn = connections.get(id);
 
 		appendMessage({
 			author: "",
@@ -41,7 +43,7 @@
 		if ($myUsername.trim() != "") unicast(id, "username", $myUsername);
 
 		conn
-			.on("data", (rawData) => {
+			?.on("data", (rawData) => {
 				const { type, data } = JSON.parse(rawData);
 
 				if (type == "message") {
@@ -104,7 +106,7 @@
 		resetTyping();
 		broadcast("message", inputValue);
 		appendMessage({
-			author: myId,
+			author: myPubKey,
 			content: inputValue
 		});
 		inputValue = "";
@@ -112,7 +114,7 @@
 
 	function onMyUsernameChanged() {
 		broadcast("username", $myUsername);
-		onUsernameChanged(myId, $myUsername);
+		onUsernameChanged(myPubKey, $myUsername);
 	}
 
 	function onUsernameChanged(id: PeerId, username: string) {
@@ -137,7 +139,7 @@
 				bind:value={$myUsername}
 				type="text"
 			/>
-			<p>{myId}</p>
+			<p>{nip19.npubEncode(myPubKey)}</p>
 			<p>{$connectedCountStore} conectados</p>
 		</div>
 
