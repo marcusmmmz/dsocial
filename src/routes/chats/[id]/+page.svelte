@@ -130,9 +130,9 @@
 	}}
 />
 
-<div class="main">
+<div class="chat">
 	<div class="top-bar">
-		<div class="status-bar">
+		<div class="profile-bar">
 			<input
 				placeholder="username"
 				on:change={onMyUsernameChanged}
@@ -140,19 +140,11 @@
 				type="text"
 			/>
 			<p>{nip19.npubEncode(myPubKey)}</p>
-			<p>{$connectedCountStore} conectados</p>
 		</div>
 
 		<div class="connect-bar">
-			<input
-				value={data.chatId}
-				on:change={(e) => {
-					// navigate and reload page
-					window.location.href = `/chats/${e.currentTarget.value}`;
-				}}
-				type="text"
-			/>
 			<button on:click={publishYourself}>auto-connect</button>
+			<p>{data.chatId} => {$connectedCountStore} peers connected</p>
 		</div>
 	</div>
 
@@ -183,43 +175,37 @@
 </div>
 
 <style>
-	:global(body, html) {
-		height: 100%;
-		margin: 0;
-	}
-	.main {
+	.chat {
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
 		height: 100%;
+		width: 100%;
 		background-color: #303339;
-		color: white;
-		font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 	}
 	.top-bar {
-		background-color: gray;
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+		border-bottom: 2px solid #282c2c;
+		padding: 1em 1em 0 1em;
 	}
 	.input-bar {
 		display: grid;
 		grid-template-columns: auto 20%;
-		background-color: darkcyan;
-	}
-	.input-bar input {
-		height: 5vh;
+		gap: 1em;
+		height: 10%;
+		padding: 0 1em 1em 1em;
 	}
 	.connect-bar {
-		display: grid;
-		grid-template-columns: auto 20%;
-	}
-	.connect-bar input {
-		height: 5vh;
-	}
-	.status-bar {
 		text-align: center;
 		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		background-color: darkgrey;
-		color: black;
+		grid-template-columns: 20% auto;
+	}
+	.profile-bar {
+		text-align: center;
+		display: grid;
+		grid-template-columns: 20% auto;
 	}
 	.message-list {
 		height: 100%;
@@ -228,5 +214,17 @@
 		justify-content: start;
 		overflow-y: scroll;
 		padding-bottom: 16px;
+	}
+	input,
+	button {
+		background-color: #393a41;
+		color: white;
+		border: 0 solid;
+	}
+	button:hover {
+		cursor: pointer;
+	}
+	button:active {
+		background-color: #282c2c;
 	}
 </style>
