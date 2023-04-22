@@ -7,7 +7,6 @@ export let myPrivKey = useGet(useLocalStorage("privkey", generatePrivateKey()));
 export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privkey)));
 export let myUsername = useLocalStorage("username", "");
 export let usernameStore = writable<Record<PeerId, string>>({});
-export let connectedCountStore = useCount();
 
 function useCount() {
 	const { subscribe, update } = writable(0);

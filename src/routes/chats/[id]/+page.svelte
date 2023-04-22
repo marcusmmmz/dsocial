@@ -1,12 +1,10 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
-	import { broadcast, connections, onPeerConnect, unicast } from "$lib/webrtc";
-	import { connectedCountStore, myUsername, usernameStore, myPubKey } from "$lib/stores";
+	import { myUsername, usernameStore, myPubKey } from "$lib/stores";
 	import type { PeerId } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
-	import { publishYourself, searchPublishers, setSignalingChannel } from "$lib/signaling";
 	import { nip19 } from "nostr-tools";
 
 	interface IMessage {
@@ -21,73 +19,71 @@
 	let inputValue = "";
 	let scrollEl: HTMLDivElement;
 
-	setSignalingChannel(`chat-${data.chatId}`);
 	$usernameStore[$myPubKey] = $myUsername;
 
 	$: typingList = Object.keys(typingTimeouts);
 
 	onMount(() => {
-		searchPublishers();
 		Notification.requestPermission();
 	});
 
-	onPeerConnect((id) => {
-		const conn = connections.get(id);
+	// onPeerConnect((id) => {
+	// 	const conn = connections.get(id);
 
-		appendMessage({
-			author: "",
-			content: `${id} entrou no chat`
-		});
+	// 	appendMessage({
+	// 		author: "",
+	// 		content: `${id} entrou no chat`
+	// 	});
 
-		if ($myUsername.trim() != "") unicast(id, "username", $myUsername);
+	// 	if ($myUsername.trim() != "") unicast(id, "username", $myUsername);
 
-		conn
-			?.on("data", (rawData) => {
-				const { type, data } = JSON.parse(rawData);
+	// 	conn
+	// 		?.on("data", (rawData) => {
+	// 			const { type, data } = JSON.parse(rawData);
 
-				if (type == "message") {
-					let content: string = data;
+	// 			if (type == "message") {
+	// 				let content: string = data;
 
-					appendMessage({
-						author: id,
-						content
-					});
+	// 				appendMessage({
+	// 					author: id,
+	// 					content
+	// 				});
 
-					if (document.visibilityState == "hidden")
-						new Notification($usernameStore[id] ?? id, {
-							body: content
-						});
+	// 				if (document.visibilityState == "hidden")
+	// 					new Notification($usernameStore[id] ?? id, {
+	// 						body: content
+	// 					});
 
-					if (typingTimeouts[id]) {
-						clearTimeout(typingTimeouts[id]);
-						delete typingTimeouts[id];
-						//force update
-						typingTimeouts = typingTimeouts;
-					}
-				} else if (type == "username") {
-					let username: string = data;
+	// 				if (typingTimeouts[id]) {
+	// 					clearTimeout(typingTimeouts[id]);
+	// 					delete typingTimeouts[id];
+	// 					//force update
+	// 					typingTimeouts = typingTimeouts;
+	// 				}
+	// 			} else if (type == "username") {
+	// 				let username: string = data;
 
-					onUsernameChanged(id, username);
-				} else if (type == "typing") {
-					if (typingTimeouts[id]) clearTimeout(typingTimeouts[id]);
+	// 				onUsernameChanged(id, username);
+	// 			} else if (type == "typing") {
+	// 				if (typingTimeouts[id]) clearTimeout(typingTimeouts[id]);
 
-					typingTimeouts[id] = setTimeout(() => {
-						delete typingTimeouts[id];
-						//force update
-						typingTimeouts = typingTimeouts;
-					}, 3000);
-				}
-			})
-			.on("close", () => {
-				appendMessage({
-					author: "",
-					content: `${$usernameStore[id] ?? id} saiu do chat`
-				});
-			});
-	});
+	// 				typingTimeouts[id] = setTimeout(() => {
+	// 					delete typingTimeouts[id];
+	// 					//force update
+	// 					typingTimeouts = typingTimeouts;
+	// 				}, 3000);
+	// 			}
+	// 		})
+	// 		.on("close", () => {
+	// 			appendMessage({
+	// 				author: "",
+	// 				content: `${$usernameStore[id] ?? id} saiu do chat`
+	// 			});
+	// 		});
+	// });
 
 	const { call: startTyping, reset: resetTyping } = useThrottle(
-		() => broadcast("typing", true),
+		() => {}, //broadcast("typing", true),
 		1000
 	);
 
@@ -103,7 +99,7 @@
 
 	function sendMessage() {
 		resetTyping();
-		broadcast("message", inputValue);
+		// broadcast("message", inputValue);
 		appendMessage({
 			author: $myPubKey,
 			content: inputValue
@@ -112,7 +108,7 @@
 	}
 
 	function onMyUsernameChanged() {
-		broadcast("username", $myUsername);
+		// broadcast("username", $myUsername);
 		onUsernameChanged($myPubKey, $myUsername);
 	}
 
@@ -120,14 +116,6 @@
 		$usernameStore[id] = username;
 	}
 </script>
-
-<svelte:window
-	on:unload={() => {
-		for (const conn of Object.values(connections)) {
-			conn.destroy();
-		}
-	}}
-/>
 
 <div class="chat">
 	<div class="top-bar">
@@ -141,9 +129,8 @@
 			<p>{nip19.npubEncode($myPubKey)}</p>
 		</div>
 
-		<div class="connect-bar">
-			<button on:click={publishYourself}>auto-connect</button>
-			<p>{data.chatId} => {$connectedCountStore} peers connected</p>
+		<div class="chat-name">
+			<p>{data.chatId}</p>
 		</div>
 	</div>
 
@@ -196,10 +183,8 @@
 		height: 10%;
 		padding: 0 1em 1em 1em;
 	}
-	.connect-bar {
+	.chat-name {
 		text-align: center;
-		display: grid;
-		grid-template-columns: 20% auto;
 	}
 	.profile-bar {
 		text-align: center;
