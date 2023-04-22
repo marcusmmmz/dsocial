@@ -1,7 +1,10 @@
-import { writable, type Updater } from "svelte/store";
+import { derived, writable, type Readable, type Updater } from "svelte/store";
 import { browser } from "$app/environment";
 import type { PeerId } from "./interfaces";
+import { generatePrivateKey, getPublicKey } from "nostr-tools";
 
+export let myPrivKey = useGet(useLocalStorage("privkey", generatePrivateKey()));
+export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privkey)));
 export let myUsername = useLocalStorage("username", "");
 export let usernameStore = writable<Record<PeerId, string>>({});
 export let connectedCountStore = useCount();
@@ -13,6 +16,19 @@ function useCount() {
 		subscribe,
 		increment: () => update((n) => n + 1),
 		decrement: () => update((n) => n - 1)
+	};
+}
+
+export function useGet<T extends any, Store extends any>(store: Readable<T> & Store) {
+	let value: T;
+
+	store.subscribe((newValue) => (value = newValue));
+
+	return {
+		...store,
+		get() {
+			return value;
+		}
 	};
 }
 

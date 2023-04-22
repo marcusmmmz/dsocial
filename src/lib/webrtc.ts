@@ -1,4 +1,3 @@
-import Ably from "ably";
 import SimplePeer from "simple-peer";
 import type { PeerId } from "./interfaces";
 import { connectedCountStore } from "./stores";
@@ -23,8 +22,6 @@ const iceServers = [
 		credential: "i8SqrXzkNWKYtdb1"
 	}
 ];
-
-export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W36PLypgdKau2br7i8");
 
 const peerConnectSubscribers: ((peerId: PeerId) => any)[] = [];
 

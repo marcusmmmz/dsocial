@@ -1,5 +1,5 @@
 import Ably from "ably";
-import { myPubKey } from "./crypto";
+import { myPubKey } from "./stores";
 import type { PeerId } from "./interfaces";
 import { attemptingConnections, connections, createPeer } from "./webrtc";
 
@@ -7,7 +7,7 @@ export const ably = new Ably.Realtime("sA7Nqw.O15j_Q:kwempffC2VB5q_ObCL4ksMik3W3
 
 let signalingChannel = ably.channels.get("auto-connect");
 
-const myChannel = ably.channels.get(myPubKey);
+const myChannel = ably.channels.get(myPubKey.get());
 
 // as of now an attacker could impersonate someone else
 // TODO: use signatures to solve that
@@ -45,7 +45,7 @@ export function searchPublishers() {
 		// 1
 		const otherPeerId: PeerId = msg.data;
 
-		if (otherPeerId == myPubKey) return;
+		if (otherPeerId == myPubKey.get()) return;
 
 		if (attemptingConnections.get(otherPeerId) || connections.get(otherPeerId)) return;
 
