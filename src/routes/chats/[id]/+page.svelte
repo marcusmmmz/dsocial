@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
-	import { myUsername, usernameStore, myPubKey } from "$lib/stores";
+	import { myUsername, usernameStore, myPubKey, myPrivKey } from "$lib/stores";
 	import type { PeerId } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
-	import { nip19 } from "nostr-tools";
+	import { Kind, nip19, type Event, finishEvent } from "nostr-tools";
+	import { relayList, relayPool } from "$lib/nostr";
 
 	interface IMessage {
 		author: string;
@@ -13,6 +14,9 @@
 	}
 
 	export let data: PageData;
+
+	let decoded = nip19.decode(data.chatId).data;
+	let kind40Id = (decoded as nip19.EventPointer).id ?? decoded;
 
 	let typingTimeouts: Record<PeerId, NodeJS.Timeout> = {};
 	let messages: IMessage[] = [];
@@ -25,6 +29,41 @@
 
 	onMount(() => {
 		Notification.requestPermission();
+
+		let sub = relayPool.sub(relayList, [
+			{
+				kinds: [Kind.ChannelMessage],
+				"#e": [kind40Id]
+			}
+		]);
+
+		let buffer: Event[] = [];
+		let didEoseAlready = false;
+
+		sub.on("event", (e: Event) => {
+			if (didEoseAlready) {
+				appendMessage({
+					content: e.content,
+					author: e.pubkey
+				});
+			} else {
+				buffer.push(e);
+			}
+		});
+
+		sub.on("eose", () => {
+			didEoseAlready = true;
+
+			buffer = buffer.sort((a, b) => a.created_at - b.created_at);
+
+			messages = [
+				...messages,
+				...buffer.map((e) => ({
+					content: e.content,
+					author: e.pubkey
+				}))
+			];
+		});
 	});
 
 	// onPeerConnect((id) => {
@@ -99,11 +138,19 @@
 
 	function sendMessage() {
 		resetTyping();
-		// broadcast("message", inputValue);
-		appendMessage({
-			author: $myPubKey,
-			content: inputValue
-		});
+
+		relayPool.publish(
+			relayList,
+			finishEvent(
+				{
+					kind: Kind.ChannelMessage,
+					content: inputValue,
+					created_at: Date.now() / 1000,
+					tags: [["e", kind40Id, relayList[0], "root"]]
+				},
+				$myPrivKey
+			)
+		);
 		inputValue = "";
 	}
 
