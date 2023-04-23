@@ -2,18 +2,18 @@
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
 	import { myUsername, usernameStore, myPubKey, myPrivKey } from "$lib/stores";
-	import type { IMessage, pubkey } from "$lib/interfaces";
+	import type { IMessage, Pubkey } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
-	import { Kind, nip19, type Event, finishEvent } from "nostr-tools";
-	import { nostrNow, relayList, relayPool } from "$lib/nostr";
+	import { nip19, type Event, finishEvent, Kind } from "nostr-tools";
+	import { MyKinds, nostrNow, relayList, relayPool } from "$lib/nostr";
 
 	export let data: PageData;
 
 	let decoded = nip19.decode(data.chatId).data;
 	let kind40Id = (decoded as nip19.EventPointer).id ?? decoded;
 
-	let typingTimeouts: Record<pubkey, NodeJS.Timeout> = {};
+	let typingTimeouts: Record<Pubkey, NodeJS.Timeout> = {};
 	let messages: IMessage[] = [];
 	let inputValue = "";
 	let scrollEl: HTMLDivElement;
@@ -36,22 +36,7 @@
 		let didEoseAlready = false;
 
 		sub.on("event", (e: Event) => {
-			// TODO: optimize this
-			if ($usernameStore[e.pubkey] == undefined) {
-				relayPool
-					.sub(relayList, [
-						{
-							authors: [e.pubkey],
-							kinds: [Kind.Metadata],
-							limit: 1
-						}
-					])
-					.on("event", (e: Event) => {
-						let parsed = JSON.parse(e.content);
-
-						$usernameStore[e.pubkey] = parsed.name;
-					});
-			}
+			getUsername(e.pubkey);
 
 			if (didEoseAlready) {
 				appendMessage({
@@ -60,6 +45,13 @@
 					content: e.content,
 					author: e.pubkey
 				});
+
+				if (typingTimeouts[e.pubkey]) {
+					clearTimeout(typingTimeouts[e.pubkey]);
+					delete typingTimeouts[e.pubkey];
+					//force update
+					typingTimeouts = typingTimeouts;
+				}
 			} else {
 				buffer.push(e);
 			}
@@ -90,6 +82,27 @@
 				}
 			])
 			.on("event", (e: Event) => deleteMessage(e.tags[0][1]));
+
+		relayPool
+			.sub(relayList, [
+				{
+					kinds: [MyKinds.Typing],
+					since: nostrNow()
+				}
+			])
+			.on("event", (e: Event) => {
+				if (e.pubkey == $myPubKey) return;
+
+				getUsername(e.pubkey);
+
+				if (typingTimeouts[e.pubkey]) clearTimeout(typingTimeouts[e.pubkey]);
+
+				typingTimeouts[e.pubkey] = setTimeout(() => {
+					delete typingTimeouts[e.pubkey];
+					//force update
+					typingTimeouts = typingTimeouts;
+				}, 3000);
+			});
 	});
 
 	// onPeerConnect((id) => {
@@ -148,7 +161,19 @@
 	// });
 
 	const { call: startTyping, reset: resetTyping } = useThrottle(
-		() => {}, //broadcast("typing", true),
+		() =>
+			relayPool.publish(
+				relayList,
+				finishEvent(
+					{
+						content: "",
+						created_at: nostrNow(),
+						kind: MyKinds.Typing as number,
+						tags: [["#c", kind40Id]]
+					},
+					$myPrivKey
+				)
+			),
 		1000
 	);
 
@@ -189,12 +214,31 @@
 		onUsernameChanged($myPubKey, $myUsername);
 	}
 
-	function onUsernameChanged(id: pubkey, username: string) {
+	function onUsernameChanged(id: Pubkey, username: string) {
 		$usernameStore[id] = username;
 	}
 
 	function deleteMessage(id: string) {
 		messages = messages.filter((msg) => msg.id !== id);
+	}
+
+	// TODO: optimize this
+	function getUsername(pubkey: Pubkey) {
+		if ($usernameStore[pubkey] == undefined) {
+			relayPool
+				.sub(relayList, [
+					{
+						authors: [pubkey],
+						kinds: [Kind.Metadata],
+						limit: 1
+					}
+				])
+				.on("event", (e: Event) => {
+					let parsed = JSON.parse(e.content);
+
+					$usernameStore[pubkey] = parsed.name;
+				});
+		}
 	}
 </script>
 
@@ -238,7 +282,9 @@
 			on:keydown={(e) => {
 				if (e.key == "Enter") sendMessage();
 			}}
-			on:input={startTyping}
+			on:input={() => {
+				if (inputValue.trim() != "") startTyping();
+			}}
 		/>
 
 		<button on:click={sendMessage}> send</button>

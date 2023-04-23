@@ -1,12 +1,12 @@
 import { derived, writable, type Readable, type Updater } from "svelte/store";
 import { browser } from "$app/environment";
-import type { pubkey } from "./interfaces";
+import type { Pubkey } from "./interfaces";
 import { generatePrivateKey, getPublicKey } from "nostr-tools";
 
 export let myPrivKey = useGet(useLocalStorage("privkey", generatePrivateKey()));
 export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privkey)));
 export let myUsername = useLocalStorage("username", "");
-export let usernameStore = writable<Record<pubkey, string>>({});
+export let usernameStore = writable<Record<Pubkey, string>>({});
 
 function useCount() {
 	const { subscribe, update } = writable(0);

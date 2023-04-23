@@ -13,3 +13,8 @@ export let relayList = [
 export function nostrNow() {
 	return Math.floor(Date.now() / 1000);
 }
+
+// non-standard nostr kinds
+export enum MyKinds {
+	Typing = 20130
+}
