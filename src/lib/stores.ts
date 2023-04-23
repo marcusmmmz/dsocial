@@ -1,12 +1,12 @@
 import { derived, writable, type Readable, type Updater } from "svelte/store";
 import { browser } from "$app/environment";
-import type { PeerId } from "./interfaces";
+import type { pubkey } from "./interfaces";
 import { generatePrivateKey, getPublicKey } from "nostr-tools";
 
 export let myPrivKey = useGet(useLocalStorage("privkey", generatePrivateKey()));
 export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privkey)));
 export let myUsername = useLocalStorage("username", "");
-export let usernameStore = writable<Record<PeerId, string>>({});
+export let usernameStore = writable<Record<pubkey, string>>({});
 
 function useCount() {
 	const { subscribe, update } = writable(0);
@@ -37,11 +37,17 @@ export function useLocalStorage<T>(
 	serialize: (value: T) => string = JSON.stringify,
 	deserialize: (value: string) => T = JSON.parse
 ) {
-	if (!browser) return writable(initialValue);
+	let store = writable(initialValue);
+
+	if (!browser) return store;
 
 	let serializedValue = localStorage.getItem(key);
 
-	let store = writable(serializedValue == null ? initialValue : deserialize(serializedValue));
+	if (serializedValue == null) {
+		save(initialValue);
+	} else {
+		store.set(deserialize(serializedValue));
+	}
 
 	function save(value: T) {
 		localStorage.setItem(key, serialize(value));

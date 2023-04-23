@@ -1,6 +1,8 @@
-export type PeerId = string;
+export type pubkey = string;
 
 export interface IMessage {
-	author: PeerId;
+	id: string;
+	chatId: string;
+	author: pubkey;
 	content: string;
 }

@@ -2,23 +2,18 @@
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
 	import { myUsername, usernameStore, myPubKey, myPrivKey } from "$lib/stores";
-	import type { PeerId } from "$lib/interfaces";
+	import type { IMessage, pubkey } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
 	import { Kind, nip19, type Event, finishEvent } from "nostr-tools";
 	import { nostrNow, relayList, relayPool } from "$lib/nostr";
-
-	interface IMessage {
-		author: string;
-		content: string;
-	}
 
 	export let data: PageData;
 
 	let decoded = nip19.decode(data.chatId).data;
 	let kind40Id = (decoded as nip19.EventPointer).id ?? decoded;
 
-	let typingTimeouts: Record<PeerId, NodeJS.Timeout> = {};
+	let typingTimeouts: Record<pubkey, NodeJS.Timeout> = {};
 	let messages: IMessage[] = [];
 	let inputValue = "";
 	let scrollEl: HTMLDivElement;
@@ -47,7 +42,7 @@
 					.sub(relayList, [
 						{
 							authors: [e.pubkey],
-							kinds: [0],
+							kinds: [Kind.Metadata],
 							limit: 1
 						}
 					])
@@ -60,6 +55,8 @@
 
 			if (didEoseAlready) {
 				appendMessage({
+					id: e.id,
+					chatId: e.tags[0][1],
 					content: e.content,
 					author: e.pubkey
 				});
@@ -76,11 +73,23 @@
 			messages = [
 				...messages,
 				...buffer.map((e) => ({
+					id: e.id,
+					chatId: e.tags[0][1],
 					content: e.content,
 					author: e.pubkey
 				}))
 			];
 		});
+
+		relayPool
+			.sub(relayList, [
+				{
+					kinds: [Kind.EventDeletion],
+					since: nostrNow(),
+					"#c": [kind40Id]
+				}
+			])
+			.on("event", (e: Event) => deleteMessage(e.tags[0][1]));
 	});
 
 	// onPeerConnect((id) => {
@@ -180,8 +189,12 @@
 		onUsernameChanged($myPubKey, $myUsername);
 	}
 
-	function onUsernameChanged(id: PeerId, username: string) {
+	function onUsernameChanged(id: pubkey, username: string) {
 		$usernameStore[id] = username;
+	}
+
+	function deleteMessage(id: string) {
+		messages = messages.filter((msg) => msg.id !== id);
 	}
 </script>
 
@@ -204,7 +217,11 @@
 
 	<div class="message-list">
 		{#each messages as message, i}
-			<Message {message} short={messages[i - 1]?.author == message.author} />
+			<Message
+				on:deleted={() => deleteMessage(message.id)}
+				{message}
+				short={messages[i - 1]?.author == message.author}
+			/>
 		{/each}
 
 		<div bind:this={scrollEl} />
