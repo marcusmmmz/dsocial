@@ -9,3 +9,7 @@ export let relayList = [
 	"wss://relay.nostr.band",
 	"wss://nos.lol"
 ];
+
+export function nostrNow() {
+	return Math.floor(Date.now() / 1000);
+}

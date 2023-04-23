@@ -6,7 +6,7 @@
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
 	import { Kind, nip19, type Event, finishEvent } from "nostr-tools";
-	import { relayList, relayPool } from "$lib/nostr";
+	import { nostrNow, relayList, relayPool } from "$lib/nostr";
 
 	interface IMessage {
 		author: string;
@@ -156,18 +156,22 @@
 	function sendMessage() {
 		resetTyping();
 
-		relayPool.publish(
+		let pub = relayPool.publish(
 			relayList,
 			finishEvent(
 				{
 					kind: Kind.ChannelMessage,
 					content: inputValue,
-					created_at: Date.now() / 1000,
+					created_at: nostrNow(),
 					tags: [["e", kind40Id, relayList[0], "root"]]
 				},
 				$myPrivKey
 			)
 		);
+
+		pub.on("ok", (...a: any) => console.log("ok", a));
+		pub.on("failed", (...a: any) => console.log("err", a));
+
 		inputValue = "";
 	}
 

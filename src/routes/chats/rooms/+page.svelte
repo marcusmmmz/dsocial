@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { relayList, relayPool } from "$lib/nostr";
+	import { nostrNow, relayList, relayPool } from "$lib/nostr";
 	import { myPrivKey } from "$lib/stores";
 	import { Kind, finishEvent } from "nostr-tools";
 
@@ -20,7 +20,7 @@
 					{
 						kind: Kind.ChannelCreation,
 						content: JSON.stringify(chatInfo),
-						created_at: Date.now() / 1000,
+						created_at: nostrNow(),
 						tags: []
 					},
 					$myPrivKey
