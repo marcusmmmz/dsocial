@@ -87,6 +87,7 @@
 			.sub(relayList, [
 				{
 					kinds: [MyKinds.Typing],
+					"#c": [kind40Id],
 					since: nostrNow()
 				}
 			])
@@ -169,7 +170,7 @@
 						content: "",
 						created_at: nostrNow(),
 						kind: MyKinds.Typing as number,
-						tags: [["#c", kind40Id]]
+						tags: [["c", kind40Id]]
 					},
 					$myPrivKey
 				)
