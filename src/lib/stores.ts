@@ -5,6 +5,12 @@ import { generatePrivateKey, getPublicKey } from "nostr-tools";
 
 export let myPrivKey = useGet(useLocalStorage("privkey", generatePrivateKey()));
 export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privkey)));
+// export let myProfile = useLocalStorage("profile", {
+// 	name: "",
+// 	about: "",
+// 	picture: ""
+// })
+// export let myUsername = derived(myProfile, ($myProfile)=>$myProfile.name)
 export let myUsername = useLocalStorage("username", "");
 export let usernameStore = writable<Record<Pubkey, string>>({});
 

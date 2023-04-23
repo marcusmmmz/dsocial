@@ -210,12 +210,39 @@
 	}
 
 	function onMyUsernameChanged() {
-		// broadcast("username", $myUsername);
-		onUsernameChanged($myPubKey, $myUsername);
-	}
+		function updateProfile(profile: Record<string, any>) {
+			relayPool.publish(
+				relayList,
+				finishEvent(
+					{
+						content: JSON.stringify(profile),
+						created_at: nostrNow(),
+						kind: Kind.Metadata,
+						tags: []
+					},
+					$myPrivKey
+				)
+			);
+		}
 
-	function onUsernameChanged(id: Pubkey, username: string) {
-		$usernameStore[id] = username;
+		let sub = relayPool.sub(relayList, [
+			{
+				authors: [$myPubKey],
+				kinds: [Kind.Metadata]
+			}
+		]);
+
+		sub.on("event", (e: Event) => {
+			updateProfile({
+				...JSON.parse(e.content),
+				name: $myUsername
+			});
+		});
+		sub.on("eose", () => {
+			updateProfile({ name: $myUsername });
+		});
+
+		$usernameStore[$myPubKey] = $myUsername;
 	}
 
 	function deleteMessage(id: string) {
