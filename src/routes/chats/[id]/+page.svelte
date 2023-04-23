@@ -41,6 +41,23 @@
 		let didEoseAlready = false;
 
 		sub.on("event", (e: Event) => {
+			// TODO: optimize this
+			if ($usernameStore[e.pubkey] == undefined) {
+				relayPool
+					.sub(relayList, [
+						{
+							authors: [e.pubkey],
+							kinds: [0],
+							limit: 1
+						}
+					])
+					.on("event", (e: Event) => {
+						let parsed = JSON.parse(e.content);
+
+						$usernameStore[e.pubkey] = parsed.name;
+					});
+			}
+
 			if (didEoseAlready) {
 				appendMessage({
 					content: e.content,
