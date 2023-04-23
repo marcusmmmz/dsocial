@@ -52,6 +52,14 @@
 					//force update
 					typingTimeouts = typingTimeouts;
 				}
+
+				// only show notification after trying to get user's name
+				getUsername(e.pubkey).then(() => {
+					if (document.visibilityState == "hidden")
+						new Notification($usernameStore[e.pubkey] ?? e.pubkey, {
+							body: e.content
+						});
+				});
 			} else {
 				buffer.push(e);
 			}
@@ -105,61 +113,6 @@
 				}, 3000);
 			});
 	});
-
-	// onPeerConnect((id) => {
-	// 	const conn = connections.get(id);
-
-	// 	appendMessage({
-	// 		author: "",
-	// 		content: `${id} entrou no chat`
-	// 	});
-
-	// 	if ($myUsername.trim() != "") unicast(id, "username", $myUsername);
-
-	// 	conn
-	// 		?.on("data", (rawData) => {
-	// 			const { type, data } = JSON.parse(rawData);
-
-	// 			if (type == "message") {
-	// 				let content: string = data;
-
-	// 				appendMessage({
-	// 					author: id,
-	// 					content
-	// 				});
-
-	// 				if (document.visibilityState == "hidden")
-	// 					new Notification($usernameStore[id] ?? id, {
-	// 						body: content
-	// 					});
-
-	// 				if (typingTimeouts[id]) {
-	// 					clearTimeout(typingTimeouts[id]);
-	// 					delete typingTimeouts[id];
-	// 					//force update
-	// 					typingTimeouts = typingTimeouts;
-	// 				}
-	// 			} else if (type == "username") {
-	// 				let username: string = data;
-
-	// 				onUsernameChanged(id, username);
-	// 			} else if (type == "typing") {
-	// 				if (typingTimeouts[id]) clearTimeout(typingTimeouts[id]);
-
-	// 				typingTimeouts[id] = setTimeout(() => {
-	// 					delete typingTimeouts[id];
-	// 					//force update
-	// 					typingTimeouts = typingTimeouts;
-	// 				}, 3000);
-	// 			}
-	// 		})
-	// 		.on("close", () => {
-	// 			appendMessage({
-	// 				author: "",
-	// 				content: `${$usernameStore[id] ?? id} saiu do chat`
-	// 			});
-	// 		});
-	// });
 
 	const { call: startTyping, reset: resetTyping } = useThrottle(
 		() =>
@@ -251,22 +204,25 @@
 	}
 
 	// TODO: optimize this
-	function getUsername(pubkey: Pubkey) {
-		if ($usernameStore[pubkey] == undefined) {
-			relayPool
-				.sub(relayList, [
-					{
-						authors: [pubkey],
-						kinds: [Kind.Metadata],
-						limit: 1
-					}
-				])
-				.on("event", (e: Event) => {
-					let parsed = JSON.parse(e.content);
+	async function getUsername(pubkey: Pubkey) {
+		if ($usernameStore[pubkey] !== undefined) return $usernameStore[pubkey];
 
-					$usernameStore[pubkey] = parsed.name;
-				});
-		}
+		let sub = relayPool.sub(relayList, [
+			{
+				authors: [pubkey],
+				kinds: [Kind.Metadata],
+				limit: 1
+			}
+		]);
+
+		return new Promise<string | null>((resolve) => {
+			sub.on("event", (e: Event) => {
+				let username: string = JSON.parse(e.content).name;
+				$usernameStore[pubkey] = username;
+				resolve(username);
+			});
+			sub.on("eose", () => resolve(null));
+		});
 	}
 </script>
 
