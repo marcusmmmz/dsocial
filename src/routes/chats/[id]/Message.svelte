@@ -1,13 +1,16 @@
 <script lang="ts">
 	import type { IMessage } from "$lib/interfaces";
 	import { nostrNow, relayList, relayPool } from "$lib/nostr";
-	import { myPrivKey, myPubKey, usernameStore } from "$lib/stores";
+	import { myPrivKey, myPubKey, userPictureStore, usernameStore } from "$lib/stores";
 	import { Kind, finishEvent } from "nostr-tools";
 	import { createEventDispatcher } from "svelte";
 
 	export let message: IMessage;
 
 	$: author = $usernameStore[message.author] ?? message.author;
+	$: picture =
+		$userPictureStore[message.author] ||
+		"https://cdn.discordapp.com/emojis/1048253883039875122.png";
 
 	export let short = false;
 
@@ -79,6 +82,9 @@
 	class="message"
 	class:short
 >
+	{#if !short}
+		<img src={picture} alt="" />
+	{/if}
 	<div class="message-container">
 		{#if !short}
 			<div class="author">{author}</div>
@@ -105,19 +111,25 @@
 		padding: 16px;
 		padding-bottom: 0;
 		display: flex;
-		justify-content: space-between;
+		gap: 16px;
+	}
+	img {
+		width: 40px;
+		height: 40px;
+		border-radius: 100%;
 	}
 	.message.short {
 		padding: 0 16px;
+		padding-left: calc(40px + 32px);
 	}
 	.message:hover {
 		background-color: #2f3135;
 	}
 	.author {
-		font-weight: 500;
+		font-weight: 400;
 	}
 	.content {
-		font-weight: 400;
+		font-weight: 300;
 	}
 	button {
 		border-width: 0 1px 0 1px;

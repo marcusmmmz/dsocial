@@ -6,3 +6,8 @@ export interface IMessage {
 	author: Pubkey;
 	content: string;
 }
+
+export interface IProfile {
+	username: string
+	picture?: string
+}

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { onMount, tick } from "svelte";
-	import { myUsername, usernameStore, myPubKey, myPrivKey } from "$lib/stores";
-	import type { IMessage, Pubkey } from "$lib/interfaces";
+	import { myUsername, usernameStore, myPubKey, myPrivKey, userPictureStore } from "$lib/stores";
+	import type { IMessage, IProfile, Pubkey } from "$lib/interfaces";
 	import { useThrottle } from "$lib/utils";
 	import Message from "./Message.svelte";
 	import { nip19, type Event, finishEvent, Kind } from "nostr-tools";
@@ -36,7 +36,7 @@
 		let didEoseAlready = false;
 
 		sub.on("event", (e: Event) => {
-			getUsername(e.pubkey);
+			getProfile(e.pubkey);
 
 			if (didEoseAlready) {
 				appendMessage({
@@ -54,7 +54,7 @@
 				}
 
 				// only show notification after trying to get user's name
-				getUsername(e.pubkey).then(() => {
+				getProfile(e.pubkey).then(() => {
 					if (document.visibilityState == "hidden")
 						new Notification($usernameStore[e.pubkey] ?? e.pubkey, {
 							body: e.content
@@ -102,7 +102,7 @@
 			.on("event", (e: Event) => {
 				if (e.pubkey == $myPubKey) return;
 
-				getUsername(e.pubkey);
+				getProfile(e.pubkey);
 
 				if (typingTimeouts[e.pubkey]) clearTimeout(typingTimeouts[e.pubkey]);
 
@@ -204,7 +204,7 @@
 	}
 
 	// TODO: optimize this
-	async function getUsername(pubkey: Pubkey) {
+	async function getProfile(pubkey: Pubkey) {
 		if ($usernameStore[pubkey] !== undefined) return $usernameStore[pubkey];
 
 		let sub = relayPool.sub(relayList, [
@@ -215,11 +215,17 @@
 			}
 		]);
 
-		return new Promise<string | null>((resolve) => {
+		return new Promise<IProfile | null>((resolve) => {
 			sub.on("event", (e: Event) => {
-				let username: string = JSON.parse(e.content).name;
-				$usernameStore[pubkey] = username;
-				resolve(username);
+				let parsed = JSON.parse(e.content);
+				
+				$usernameStore[pubkey] = parsed.name;
+				$userPictureStore[pubkey] = parsed.picture;
+
+				resolve({
+					username: parsed.name,
+					picture: parsed.picture
+				});
 			});
 			sub.on("eose", () => resolve(null));
 		});

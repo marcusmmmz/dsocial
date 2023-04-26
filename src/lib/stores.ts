@@ -13,6 +13,7 @@ export let myPubKey = useGet(derived(myPrivKey, (privkey) => getPublicKey(privke
 // export let myUsername = derived(myProfile, ($myProfile)=>$myProfile.name)
 export let myUsername = useLocalStorage("username", "");
 export let usernameStore = writable<Record<Pubkey, string>>({});
+export let userPictureStore = writable<Record<Pubkey, string>>({});
 
 function useCount() {
 	const { subscribe, update } = writable(0);
