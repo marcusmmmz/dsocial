@@ -218,7 +218,7 @@
 		return new Promise<IProfile | null>((resolve) => {
 			sub.on("event", (e: Event) => {
 				let parsed = JSON.parse(e.content);
-				
+
 				$usernameStore[pubkey] = parsed.name;
 				$userPictureStore[pubkey] = parsed.picture;
 
@@ -250,7 +250,7 @@
 	</div>
 
 	<div class="message-list">
-		{#each messages as message, i}
+		{#each messages as message, i (message.id)}
 			<Message
 				on:deleted={() => deleteMessage(message.id)}
 				{message}
@@ -287,7 +287,8 @@
 		flex-direction: column;
 		justify-content: space-between;
 		height: 100%;
-		width: 100%;
+		width: calc(100% - 64px);
+		/* width: auto; */
 		background-color: #303339;
 	}
 	.top-bar {
@@ -314,11 +315,16 @@
 	}
 	.message-list {
 		height: 100%;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
-		justify-content: start;
+		gap: 8px;
+		/* justify-content: start; */
 		overflow-y: scroll;
+		/* overflow-x: hidden; */
 		padding-bottom: 16px;
+		/* padding-right: 16px; */
+		/* margin-right: 16px; */
 	}
 	input,
 	button {

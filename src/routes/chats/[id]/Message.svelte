@@ -108,28 +108,36 @@
 
 <style>
 	.message {
-		padding: 16px;
-		padding-bottom: 0;
 		display: flex;
+		flex-direction: row;
 		gap: 16px;
+		padding-left: 16px;
+		padding-right: 16px;
+		word-wrap: break-word;
+	}
+	.message.short {
+		padding-left: calc(40px + 32px);
+	}
+	.message:hover {
+		background-color: #2f3135;
+	}
+	.message-container {
+		/* TODO: do this better */
+		width: calc(100% - 40px - 16px);
+	}
+	.short .message-container {
+		width: 100%;
 	}
 	img {
 		width: 40px;
 		height: 40px;
 		border-radius: 100%;
 	}
-	.message.short {
-		padding: 0 16px;
-		padding-left: calc(40px + 32px);
-	}
-	.message:hover {
-		background-color: #2f3135;
-	}
 	.author {
-		font-weight: 400;
+		font-weight: 500;
 	}
 	.content {
-		font-weight: 300;
+		font-weight: 400;
 	}
 	button {
 		border-width: 0 1px 0 1px;

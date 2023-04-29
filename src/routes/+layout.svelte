@@ -10,14 +10,16 @@
 <style>
 	:global(body, html) {
 		height: 100%;
-		width: 100%;
+		width: 100vw;
 		margin: 0;
 	}
 	.main {
 		display: flex;
 		height: 100%;
+		width: 100vw;
 		color: white;
 		font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+		/* overflow-x: hidden; */
 	}
 	.side-bar {
 		background-color: #1f1f23;
