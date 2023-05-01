@@ -125,10 +125,7 @@
 	async function sendMessage() {
 		resetTyping();
 
-		let pub = relayPool.publish(
-			relayList,
-			await getMessageToSend()
-		);
+		let pub = relayPool.publish(relayList, await getMessageToSend());
 
 		pub.on("ok", (...a: any) => console.log("ok", a));
 		pub.on("failed", (...a: any) => console.log("err", a));
@@ -261,7 +258,6 @@
 		justify-content: space-between;
 		height: 100%;
 		width: calc(100% - 64px);
-		/* width: auto; */
 		background-color: #303339;
 	}
 	.top-bar {
@@ -291,13 +287,8 @@
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		/* justify-content: start; */
 		overflow-y: scroll;
-		/* overflow-x: hidden; */
 		padding-bottom: 16px;
-		/* padding-right: 16px; */
-		/* margin-right: 16px; */
 	}
 	input,
 	button {

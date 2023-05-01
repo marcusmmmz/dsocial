@@ -113,10 +113,12 @@
 		gap: 16px;
 		padding-left: 16px;
 		padding-right: 16px;
+		padding-top: 16px;
 		word-wrap: break-word;
 	}
 	.message.short {
 		padding-left: calc(40px + 32px);
+		padding-top: 0;
 	}
 	.message:hover {
 		background-color: #2f3135;
