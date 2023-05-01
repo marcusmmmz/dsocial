@@ -1,7 +1,8 @@
 <div class="main">
 	<div class="side-bar">
 		<img src="https://cdn.discordapp.com/emojis/1048253883039875122.png" alt="pexe" />
-		<a href="/chats/rooms"><button>rooms</button></a>
+		<a href="/chats"><button>rooms</button></a>
+		<a href="/dms"><button>DMs</button></a>
 	</div>
 
 	<slot />
@@ -19,7 +20,6 @@
 		width: 100vw;
 		color: white;
 		font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-		/* overflow-x: hidden; */
 	}
 	.side-bar {
 		background-color: #1f1f23;
